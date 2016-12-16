@@ -101,6 +101,11 @@
     <script>
         hljs.initHighlightingOnLoad();
 
+        var f = 440;
+        var T = 1.0 / f;
+        var sample_rate = 8000;
+        var sample_duration = 1.0 / sample_rate;
+
         function base64_encoder(b) {
             // http://tools.ietf.org/html/rfc4648
             var map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
@@ -123,8 +128,84 @@
             return r.substring(0, r.length - padding.length) + padding;
         }
 
-        function play1() {
-            alert('lol');
+        function mk_le_bs(data, size) {
+            s = '';
+            while (size > 0) {
+                s += String.fromCharCode(0xFF & data);
+                data >>= 8;
+                size--;
+            }
+            return s;
+        }
+
+        function square(t) {
+            var _ = Math.sin(t);
+            if (_ > 0) return 1.0;
+            if (_ < 0) return -1.0;
+            return 0.0;
+        }
+
+        function tri(t, T) {
+            var a = T / 2.0;
+            return 2.0 * Math.abs(2.0 * (t / a - Math.floor(t / a + 0.5))) - 1.0;
+        }
+
+        function saw(t, T) {
+            return 2.0 * (t / T - Math.floor(t / T + 0.5));
+        }
+
+        function asdr(attack, sustain, delay, release) {
+            return 1;
+        }
+
+        function synth(osc, hull) {
+            return function(t) { return Math.floor(127.5 * osc(t) * hull(t) + 127.5); };
+        }
+
+
+        function play() {
+
+            var t_begin = new Date().getTime();
+            var WAVE_FORMAT_PCM = 0x0001;
+            var samples_per_period = Math.floor(T * sample_rate);
+
+            data = [];
+            var _const1 = Math.floor(sample_rate * 1);
+            var N_samples = 2.0 * Math.PI * f * sample_duration;
+
+
+            for (var idx=0; idx<_const1; idx++) {
+                //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
+                data.push(synth(Math.sin, asdr)(idx * N_samples));
+                //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
+            }
+
+            var s = '';
+
+            pad = (data.length % 2 == 1) ? ' ': '';
+            // http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+            s = 'RIFF' + mk_le_bs(4 + 24 + (8 + 1 * 1 * data.length + pad.length), 4) +
+                'WAVE' + 'fmt ' + mk_le_bs(16, 4) +
+                mk_le_bs(WAVE_FORMAT_PCM, 2) +
+                mk_le_bs(1, 2) +
+                mk_le_bs(sample_rate, 4) +
+                mk_le_bs(sample_rate * 1 * 1, 4) +
+                mk_le_bs(1 * 1, 2) +
+                mk_le_bs(8 * 1, 2) +
+                'data' + mk_le_bs(1 * 1 * data.length, 4)
+            ;
+
+            bs = [];
+            for (var idx=0; idx<s.length; idx++) {
+                bs.push(s.charCodeAt(idx));
+            }
+            bs = bs.concat(data);
+            if (pad.length > 0)
+                bs.push(0x00);
+
+            s = 'data:audio/wav;base64,' + base64_encoder(bs);
+            var audio = new Audio(s);
+            audio.play();
         }
     </script>
 </head>
@@ -136,6 +217,6 @@ OH MY GOD HOW DID THIS GET HERE I'M NOT GOOD WITH COMPUTERS
 <pre><code class="js">function() {
 if (this) c.wl();
 }</code></pre>
-<button onclick="play1()">Play</button>
+<button onclick="play()">Play</button>
 </body>
 </html>
