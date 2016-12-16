@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Autio things</title>
+    <style type="text/css">
+        body {
+            margin: 40px auto;
+            max-width: 650px;
+            line-height: 1.6;
+            font-size: 18px;
+            color: #444;
+            padding: 0 10px
+        }
+
+        h1, h2, h3 {
+            line-height: 1.2
+        }
+
+        .hljs {
+            display: block;
+            overflow-x: auto;
+            padding: 0.5em;
+            background: #fdf6e3;
+            color: #657b83;
+        }
+
+        .hljs-comment,
+        .hljs-quote {
+            color: #93a1a1;
+        }
+
+        /* Solarized Green */
+        .hljs-keyword,
+        .hljs-selector-tag,
+        .hljs-addition {
+            color: #859900;
+        }
+
+        /* Solarized Cyan */
+        .hljs-number,
+        .hljs-string,
+        .hljs-meta .hljs-meta-string,
+        .hljs-literal,
+        .hljs-doctag,
+        .hljs-regexp {
+            color: #2aa198;
+        }
+
+        /* Solarized Blue */
+        .hljs-title,
+        .hljs-section,
+        .hljs-name,
+        .hljs-selector-id,
+        .hljs-selector-class {
+            color: #268bd2;
+        }
+
+        /* Solarized Yellow */
+        .hljs-attribute,
+        .hljs-attr,
+        .hljs-variable,
+        .hljs-template-variable,
+        .hljs-class .hljs-title,
+        .hljs-type {
+            color: #b58900;
+        }
+
+        /* Solarized Orange */
+        .hljs-symbol,
+        .hljs-bullet,
+        .hljs-subst,
+        .hljs-meta,
+        .hljs-meta .hljs-keyword,
+        .hljs-selector-attr,
+        .hljs-selector-pseudo,
+        .hljs-link {
+            color: #cb4b16;
+        }
+
+        /* Solarized Red */
+        .hljs-built_in,
+        .hljs-deletion {
+            color: #dc322f;
+        }
+
+        .hljs-formula {
+            background: #eee8d5;
+        }
+
+        .hljs-emphasis {
+            font-style: italic;
+        }
+
+        .hljs-strong {
+            font-weight: bold;
+        }
+    </style>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js"></script>
+    <script>
+        hljs.initHighlightingOnLoad();
+
+        function base64_encoder(b) {
+            // http://tools.ietf.org/html/rfc4648
+            var map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
+            var r = "";
+            for (var i = 0; i < b.length; i += 3) {
+                var bin = 0x000000;
+                // FIXME with one loop
+                bin |= b[i] << 16;
+                if (i + 1 < b.length)
+                    bin |= b[i + 1] << 8;
+                if (i + 2 < b.length)
+                    bin |= b[i + 2];
+                // Converting
+                var mask = 0xFC0000;
+                for (var j = 0; j < 4; j++) {
+                    r += map[((bin & (0xFC0000 >> (j * 6))) >> ((3 - j) * 6))];
+                }
+            }
+            var padding = (b.length % 3 > 0) ? "==".substring(b.length % 3 - 1, 2) : "";
+            return r.substring(0, r.length - padding.length) + padding;
+        }
+
+        function play1() {
+            alert('lol');
+        }
+    </script>
+</head>
+<body>
+<h1>
+    Woah
+</h1>
+OH MY GOD HOW DID THIS GET HERE I'M NOT GOOD WITH COMPUTERS
+<pre><code class="js">function() {
+if (this) c.wl();
+}</code></pre>
+<button onclick="play1()">Play</button>
+</body>
+</html>
