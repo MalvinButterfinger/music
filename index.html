@@ -101,8 +101,9 @@
     <script>
         hljs.initHighlightingOnLoad();
 
+        var WAVE_FORMAT_PCM = 0x0001;
         var f = 440;
-        var sample_rate = 8000;
+        var sample_rate = 16000;
         var T = 1.0 / f;
         var sample_duration = 1.0 / sample_rate;
         var major = [0, 2, 4, 5, 7, 9, 11];
@@ -166,11 +167,37 @@
             return Math.sin(x * _const2);
         }
 
+        function getBase64AudioString(samples) {
+            var s = '';
+
+            pad = (data.length % 2 == 1) ? ' ' : '';
+            // http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+            s = 'RIFF' + mk_le_bs(4 + 24 + (8 + 1 * 1 * samples.length + pad.length), 4) +
+                'WAVE' + 'fmt ' + mk_le_bs(16, 4) +
+                mk_le_bs(WAVE_FORMAT_PCM, 2) +
+                mk_le_bs(1, 2) +
+                mk_le_bs(sample_rate, 4) +
+                mk_le_bs(sample_rate * 1 * 1, 4) +
+                mk_le_bs(1 * 1, 2) +
+                mk_le_bs(8 * 1, 2) +
+                'data' + mk_le_bs(1 * 1 * samples.length, 4)
+            ;
+
+            bs = [];
+            for (var idx = 0; idx < s.length; idx++) {
+                bs.push(s.charCodeAt(idx));
+            }
+            bs = bs.concat(samples);
+            if (pad.length > 0)
+                bs.push(0x00);
+
+            s = 'data:audio/wav;base64,' + base64_encoder(bs);
+            return s;
+        }
 
         function play() {
 
             var t_begin = new Date().getTime();
-            var WAVE_FORMAT_PCM = 0x0001;
             var samples_per_period = Math.floor(T * sample_rate);
 
             var notes = [
@@ -217,30 +244,7 @@
                 }
             }
 
-            var s = '';
-
-            pad = (data.length % 2 == 1) ? ' ' : '';
-            // http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
-            s = 'RIFF' + mk_le_bs(4 + 24 + (8 + 1 * 1 * data.length + pad.length), 4) +
-                'WAVE' + 'fmt ' + mk_le_bs(16, 4) +
-                mk_le_bs(WAVE_FORMAT_PCM, 2) +
-                mk_le_bs(1, 2) +
-                mk_le_bs(sample_rate, 4) +
-                mk_le_bs(sample_rate * 1 * 1, 4) +
-                mk_le_bs(1 * 1, 2) +
-                mk_le_bs(8 * 1, 2) +
-                'data' + mk_le_bs(1 * 1 * data.length, 4)
-            ;
-
-            bs = [];
-            for (var idx = 0; idx < s.length; idx++) {
-                bs.push(s.charCodeAt(idx));
-            }
-            bs = bs.concat(data);
-            if (pad.length > 0)
-                bs.push(0x00);
-
-            s = 'data:audio/wav;base64,' + base64_encoder(bs);
+            var s = getBase64AudioString(data);
             var audio = new Audio(s);
             audio.play();
         }
