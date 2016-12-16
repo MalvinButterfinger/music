@@ -105,30 +105,10 @@
         var sample_rate = 8000;
         var T = 1.0 / f;
         var sample_duration = 1.0 / sample_rate;
-        var intervals = [
-            1,
-            25. / 24,
-            16. / 15,
-            9. / 8,
-            75. / 64,
-            6. / 5,
-            5. / 4,
-            32. / 25,
-            4. / 3,
-            25. / 18,
-            36. / 25,
-            3. / 2,
-            25. / 16,
-            8. / 5,
-            5. / 3,
-            125. / 72,
-            9. / 5,
-            15. / 8,
-            48. / 25,
-            2
-        ];
         var major = [0, 2, 4, 5, 7, 9, 11];
         var minor = [0, 2, 3, 5, 7, 8, 10];
+        var bpm = 120;
+        var bps = sample_rate / (bpm / 60) * 4;
 
         function base64_encoder(b) {
             // http://tools.ietf.org/html/rfc4648
@@ -165,8 +145,10 @@
         function note(scale, n) {
             var nps = scale.length;
             var x = n % nps;
-
-            return   Math.pow(2, (scale[x]+1)/12) * (Math.floor(n / 7) + 1) * f;
+            var y = x < 0 ? nps - Math.abs(x) - 2 : x;
+            var oct = Math.floor(n / 7);
+            var ocf = Math.pow(2, oct-1)
+            return  (Math.pow(2, (scale[y]+1)/12) * ocf) * f;
         }
 
         function asdr(attack, delay, sustain, release) {
@@ -192,7 +174,30 @@
             var samples_per_period = Math.floor(T * sample_rate);
 
             var notes = [
-                [1, 1]
+                [1, 1/8],
+                [3, 1/8],
+                [5, 1/8],
+                [3, 1/8],
+                [1, 1/8],
+                [3, 1/8],
+                [5, 1/8],
+                [3, 1/8],
+                [1, 1/8],
+                [3, 1/8],
+                [4, 1/8],
+                [3, 1/8],
+                [1, 1/8],
+                [3, 1/8],
+                [4, 1/8],
+                [3, 1/8],
+                [-1, 1/8],
+                [-2, 1/8],
+                [-4, 1/8],
+                [-2, 1/8],
+                [-1, 1/8],
+                [-2, 1/8],
+                [-4, 1/8],
+                [-2, 1/8],
             ];
 
             data = [];
@@ -201,15 +206,15 @@
 
 
             var ns = _const1 / 12;
-            for (var idx = 0; idx < _const1; idx++) {
-                //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
-                var min = note(minor, Math.floor(idx / ns));
-                var maj = note(major, Math.floor(idx / ns) + 2);
-                var s1 = synth(sin, asdr, min)(idx);
-                var s2 = synth(sin, asdr, maj)(idx);
 
-                data.push(s1 / 4 + s2 / 2);
-                //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
+            for (var ni=0; ni < notes.length; ni++) {
+                for (var idx = 0; idx < notes[ni][1] * bps; idx++) {
+                    //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
+                    var min = note(minor, notes[ni][0]);
+                    var s1 = synth(sin, asdr, min)(idx);
+                    data.push(s1);
+                    //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
+                }
             }
 
             var s = '';
