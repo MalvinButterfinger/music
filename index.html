@@ -158,9 +158,11 @@
 
             return function(t) {
                 if (t < as)
-                    return 1 - 1/as;
+                    return t * (1/as);
                 var td = t - as;
-                return 1 - (td/ds);
+                var slope = -1/ds;
+                var val = 1 + slope*td;
+                return val < 0 ? 0 : val;
             };
         }
 
@@ -173,6 +175,10 @@
         function sin(x, f) {
             var _const2 = 2.0 * Math.PI * f * sample_duration;
             return Math.sin(x * _const2);
+        }
+
+        function square(x, f) {
+            return sin(x,f) > 0 ? 0 : 1;
         }
 
         function getBase64AudioString(samples) {
@@ -208,11 +214,7 @@
             var t_begin = new Date().getTime();
             var samples_per_period = Math.floor(T * sample_rate);
 
-            var notes = [
-                [0, 1/8],
-                [2, 1/8],
-                [4, 1/8],
-                [2, 1/8],
+            var notes1 = [
                 [0, 1/8],
                 [2, 1/8],
                 [4, 1/8],
@@ -223,6 +225,15 @@
                 [2, 1/8],
             ];
 
+            var notes2 = [
+                [0, 1/4],
+                [0, 1/4],
+                [2, 1/4],
+                [4, 1/4],
+            ];
+
+            data1 = [];
+            data2 = [];
             data = [];
             var _const1 = Math.floor(sample_rate * 4);
             var N_samples = 2.0 * Math.PI * f * sample_duration;
@@ -230,14 +241,28 @@
 
             var ns = _const1 / 12;
 
-            for (var ni=0; ni < notes.length; ni++) {
-                for (var idx = 0; idx < notes[ni][1] * bps; idx++) {
+            for (var ni=0; ni < notes1.length; ni++) {
+                for (var idx = 0; idx < notes1[ni][1] * bps; idx++) {
                     //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
-                    var min = note(minor, notes[ni][0]);
-                    var s1 = synth(sin, ad(0.1,0.1), min)(idx);
-                    data.push(s1);
+                    var min = note(minor, notes1[ni][0]);
+                    var s1 = synth(sin, ad(0.4,0.01), min)(idx);
+                    data1.push(s1);
                     //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
                 }
+            }
+
+            for (var ni=0; ni < notes2.length; ni++) {
+                for (var idx = 0; idx < notes2[ni][1] * bps; idx++) {
+                    //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
+                    var min = note(minor, notes2[ni][0]);
+                    var s1 = synth(square, ad(0.1,0.3), min)(idx);
+                    data2.push(s1);
+                    //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
+                }
+            }
+
+            for (var i=0; i < data1.length; i++) {
+                data[i] = .5 * data1[i] + .1 * data2[i];
             }
 
             var s = getBase64AudioString(data);
