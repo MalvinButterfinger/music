@@ -6,7 +6,7 @@
     <style type="text/css">
         body {
             margin: 40px auto;
-            max-width: 650px;
+            max-width: 1000px;
             line-height: 1.6;
             font-size: 18px;
             color: #444;
@@ -104,9 +104,7 @@
         var WAVE_FORMAT_PCM = 0x0001;
         var f = 440;
         var sample_rate = 16000;
-        var T = 1.0 / f;
         var sample_duration = 1.0 / sample_rate;
-        var major = [0, 2, 4, 5, 7, 9, 11];
         var minor = [0, 2, 3, 5, 7, 8, 10];
         var bpm = 120;
         var bps = sample_rate / (bpm / 60) * 4;
@@ -143,25 +141,52 @@
             return s;
         }
 
+        function getBase64AudioString(samples) {
+            var s = '';
+
+            pad = (data.length % 2 == 1) ? ' ' : '';
+            // http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+            s = 'RIFF' + mk_le_bs(4 + 24 + (8 + 1 * 1 * samples.length + pad.length), 4) +
+                'WAVE' + 'fmt ' + mk_le_bs(16, 4) +
+                mk_le_bs(WAVE_FORMAT_PCM, 2) +
+                mk_le_bs(1, 2) +
+                mk_le_bs(sample_rate, 4) +
+                mk_le_bs(sample_rate * 1 * 1, 4) +
+                mk_le_bs(1 * 1, 2) +
+                mk_le_bs(8 * 1, 2) +
+                'data' + mk_le_bs(1 * 1 * samples.length, 4);
+
+            bs = [];
+            for (var idx = 0; idx < s.length; idx++) {
+                bs.push(s.charCodeAt(idx));
+            }
+            bs = bs.concat(samples);
+            if (pad.length > 0)
+                bs.push(0x00);
+
+            s = 'data:audio/wav;base64,' + base64_encoder(bs);
+            return s;
+        }
+
         function note(scale, n) {
             var nps = scale.length;
             var x = n % nps;
             var y = x < 0 ? nps - Math.abs(x) - 2 : x;
             var oct = Math.floor(n / 7);
-            var ocf = Math.pow(2, oct-1)
-            return  (Math.pow(2, (scale[y]+1)/12) * ocf) * f;
+            var ocf = Math.pow(2, oct - 1)
+            return (Math.pow(2, (scale[y] + 1) / 12) * ocf) * f;
         }
 
         function ad(attack, decay) {
             var as = attack * sample_rate;
             var ds = decay * sample_rate;
 
-            return function(t) {
+            return function (t) {
                 if (t < as)
-                    return t * (1/as);
+                    return t * (1 / as);
                 var td = t - as;
-                var slope = -1/ds;
-                var val = 1 + slope*td;
+                var slope = -1 / ds;
+                var val = 1 + slope * td;
                 return val < 0 ? 0 : val;
             };
         }
@@ -178,90 +203,49 @@
         }
 
         function square(x, f) {
-            return sin(x,f) > 0 ? 0 : 1;
-        }
-
-        function getBase64AudioString(samples) {
-            var s = '';
-
-            pad = (data.length % 2 == 1) ? ' ' : '';
-            // http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
-            s = 'RIFF' + mk_le_bs(4 + 24 + (8 + 1 * 1 * samples.length + pad.length), 4) +
-                'WAVE' + 'fmt ' + mk_le_bs(16, 4) +
-                mk_le_bs(WAVE_FORMAT_PCM, 2) +
-                mk_le_bs(1, 2) +
-                mk_le_bs(sample_rate, 4) +
-                mk_le_bs(sample_rate * 1 * 1, 4) +
-                mk_le_bs(1 * 1, 2) +
-                mk_le_bs(8 * 1, 2) +
-                'data' + mk_le_bs(1 * 1 * samples.length, 4)
-            ;
-
-            bs = [];
-            for (var idx = 0; idx < s.length; idx++) {
-                bs.push(s.charCodeAt(idx));
-            }
-            bs = bs.concat(samples);
-            if (pad.length > 0)
-                bs.push(0x00);
-
-            s = 'data:audio/wav;base64,' + base64_encoder(bs);
-            return s;
+            return sin(x, f) > 0 ? 0 : 1;
         }
 
         function play() {
-
-            var t_begin = new Date().getTime();
-            var samples_per_period = Math.floor(T * sample_rate);
-
             var notes1 = [
-                [0, 1/8],
-                [2, 1/8],
-                [4, 1/8],
-                [2, 1/8],
-                [0, 1/8],
-                [2, 1/8],
-                [4, 1/8],
-                [2, 1/8],
+                [0, 1 / 8],
+                [2, 1 / 8],
+                [4, 1 / 8],
+                [2, 1 / 8],
+                [0, 1 / 8],
+                [2, 1 / 8],
+                [4, 1 / 8],
+                [2, 1 / 8]
             ];
 
             var notes2 = [
-                [0, 1/4],
-                [0, 1/4],
-                [2, 1/4],
-                [4, 1/4],
+                [0, 1 / 4],
+                [0, 1 / 4],
+                [2, 1 / 4],
+                [4, 1 / 4]
             ];
 
             data1 = [];
             data2 = [];
             data = [];
-            var _const1 = Math.floor(sample_rate * 4);
-            var N_samples = 2.0 * Math.PI * f * sample_duration;
 
-
-            var ns = _const1 / 12;
-
-            for (var ni=0; ni < notes1.length; ni++) {
+            for (var ni = 0; ni < notes1.length; ni++) {
                 for (var idx = 0; idx < notes1[ni][1] * bps; idx++) {
-                    //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
                     var min = note(minor, notes1[ni][0]);
-                    var s1 = synth(sin, ad(0.4,0.01), min)(idx);
+                    var s1 = synth(sin, ad(0.4, 0.01), min)(idx);
                     data1.push(s1);
-                    //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
                 }
             }
 
-            for (var ni=0; ni < notes2.length; ni++) {
+            for (var ni = 0; ni < notes2.length; ni++) {
                 for (var idx = 0; idx < notes2[ni][1] * bps; idx++) {
-                    //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
                     var min = note(minor, notes2[ni][0]);
-                    var s1 = synth(square, ad(0.1,0.3), min)(idx);
+                    var s1 = synth(square, ad(0.1, 0.3), min)(idx);
                     data2.push(s1);
-                    //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
                 }
             }
 
-            for (var i=0; i < data1.length; i++) {
+            for (var i = 0; i < data1.length; i++) {
                 data[i] = .5 * data1[i] + .1 * data2[i];
             }
 
@@ -273,12 +257,185 @@
 </head>
 <body>
 <h1>
-    Woah
+    Vanilla JS Audio Synthesizing
 </h1>
-OH MY GOD HOW DID THIS GET HERE I'M NOT GOOD WITH COMPUTERS
-<pre><code class="js">function() {
-if (this) c.wl();
-}</code></pre>
-<button onclick="play()">Play</button>
+<h2>
+    Define some globals
+</h2>
+<pre><code class="js">
+var WAVE_FORMAT_PCM = 0x0001;               // ???
+var f = 440;                                // base frequency
+var sample_rate = 16000;
+var sample_duration = 1.0 / sample_rate;
+var major = [0, 2, 4, 5, 7, 9, 11];
+var minor = [0, 2, 3, 5, 7, 8, 10];
+var bpm = 120;
+var bps = sample_rate / (bpm / 60) * 4;
+</code></pre>
+<h2>
+    Find and adapt code from the interwebs for generating .wav files
+</h2>
+<pre><code class="js">
+function base64_encoder(b) {
+    // http://tools.ietf.org/html/rfc4648
+    var map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
+    var r = "";
+    for (var i = 0; i < b.length; i += 3) {
+        var bin = 0x000000;
+        // FIXME with one loop
+        bin |= b[i] << 16;
+        if (i + 1 < b.length)
+            bin |= b[i + 1] << 8;
+        if (i + 2 < b.length)
+            bin |= b[i + 2];
+        // Converting
+        var mask = 0xFC0000;
+        for (var j = 0; j < 4; j++) {
+            r += map[((bin & (0xFC0000 >> (j * 6))) >> ((3 - j) * 6))];
+        }
+    }
+    var padding = (b.length % 3 > 0) ? "==".substring(b.length % 3 - 1, 2) : "";
+    return r.substring(0, r.length - padding.length) + padding;
+}
+
+function mk_le_bs(data, size) {
+    s = '';
+    while (size > 0) {
+        s += String.fromCharCode(0xFF & data);
+        data >>= 8;
+        size--;
+    }
+    return s;
+}
+
+function getBase64AudioString(samples) {
+    var s = '';
+
+    pad = (data.length % 2 == 1) ? ' ' : '';
+    // http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+    s = 'RIFF' + mk_le_bs(4 + 24 + (8 + 1 * 1 * samples.length + pad.length), 4) +
+        'WAVE' + 'fmt ' + mk_le_bs(16, 4) +
+        mk_le_bs(WAVE_FORMAT_PCM, 2) +
+        mk_le_bs(1, 2) +
+        mk_le_bs(sample_rate, 4) +
+        mk_le_bs(sample_rate * 1 * 1, 4) +
+        mk_le_bs(1 * 1, 2) +
+        mk_le_bs(8 * 1, 2) +
+        'data' + mk_le_bs(1 * 1 * samples.length, 4);
+
+    bs = [];
+    for (var idx = 0; idx < s.length; idx++) {
+        bs.push(s.charCodeAt(idx));
+    }
+    bs = bs.concat(samples);
+    if (pad.length > 0)
+        bs.push(0x00);
+
+    s = 'data:audio/wav;base64,' + base64_encoder(bs);
+    return s;
+}
+</code></pre>
+<h2>
+    Define functions for scales, oscillators and envelopes
+</h2>
+<pre><code class="js">
+function note(scale, n) {
+    var nps = scale.length;
+    var x = n % nps;
+    var y = x < 0 ? nps - Math.abs(x) - 2 : x;
+    var oct = Math.floor(n / 7);
+    var ocf = Math.pow(2, oct - 1)
+    return (Math.pow(2, (scale[y] + 1) / 12) * ocf) * f;
+}
+
+function ad(attack, decay) {
+    var as = attack * sample_rate;
+    var ds = decay * sample_rate;
+
+    return function (t) {
+        if (t < as)
+            return t * (1 / as);
+        var td = t - as;
+        var slope = -1 / ds;
+        var val = 1 + slope * td;
+        return val < 0 ? 0 : val;
+    };
+}
+
+function synth(osc, hull, f) {
+    return function (t) {
+        return Math.floor(127.5 * osc(t, f) * hull(t) + 127.5);
+    };
+}
+
+function sin(x, f) {
+    var _const2 = 2.0 * Math.PI * f * sample_duration;
+    return Math.sin(x * _const2);
+}
+
+function square(x, f) {
+    return sin(x, f) > 0 ? 0 : 1;
+}
+</code></pre>
+<h2>
+    Write a test method with a polyphonic melody
+</h2>
+<pre><code class="js">
+function play() {
+    var notes1 = [
+        [0, 1 / 8],
+        [2, 1 / 8],
+        [4, 1 / 8],
+        [2, 1 / 8],
+        [0, 1 / 8],
+        [2, 1 / 8],
+        [4, 1 / 8],
+        [2, 1 / 8],
+    ];
+
+    var notes2 = [
+        [0, 1 / 4],
+        [0, 1 / 4],
+        [2, 1 / 4],
+        [4, 1 / 4],
+    ];
+
+    data1 = [];
+    data2 = [];
+    data = [];
+
+    for (var ni = 0; ni < notes1.length; ni++) {
+        for (var idx = 0; idx < notes1[ni][1] * bps; idx++) {
+            var min = note(minor, notes1[ni][0]);
+            var s1 = synth(sin, ad(0.4, 0.01), min)(idx);
+            data1.push(s1);
+        }
+    }
+
+    for (var ni = 0; ni < notes2.length; ni++) {
+        for (var idx = 0; idx < notes2[ni][1] * bps; idx++) {
+            var min = note(minor, notes2[ni][0]);
+            var s1 = synth(square, ad(0.1, 0.3), min)(idx);
+            data2.push(s1);
+        }
+    }
+
+    for (var i = 0; i < data1.length; i++) {
+        data[i] = .5 * data1[i] + .1 * data2[i];
+    }
+
+    var s = getBase64AudioString(data);
+    var audio = new Audio(s);
+    audio.play();
+}
+</code></pre>
+<button onclick="play()">PLAY</button>
+<h2>
+    Thank those guys
+</h2>
+    <h3>WAV File generation and inspiration</h3>
+    <a href="http://blog.yjl.im/2010/04/single-frequency-wave-generation-using.html">http://blog.yjl.im/2010/04/single-frequency-wave-generation-using.html</a>
+    <h3>7 fucking declarations</h3>
+    <a href="http://bettermotherfuckingwebsite.com">http://bettermotherfuckingwebsite.com</a>
 </body>
 </html>
