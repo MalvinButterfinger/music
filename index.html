@@ -152,8 +152,16 @@
             return  (Math.pow(2, (scale[y]+1)/12) * ocf) * f;
         }
 
-        function asdr(attack, delay, sustain, release) {
-            return 1;
+        function ad(attack, decay) {
+            var as = attack * sample_rate;
+            var ds = decay * sample_rate;
+
+            return function(t) {
+                if (t < as)
+                    return 1 - 1/as;
+                var td = t - as;
+                return 1 - (td/ds);
+            };
         }
 
         function synth(osc, hull, f) {
@@ -201,30 +209,18 @@
             var samples_per_period = Math.floor(T * sample_rate);
 
             var notes = [
-                [1, 1/8],
-                [3, 1/8],
-                [5, 1/8],
-                [3, 1/8],
-                [1, 1/8],
-                [3, 1/8],
-                [5, 1/8],
-                [3, 1/8],
-                [1, 1/8],
-                [3, 1/8],
+                [0, 1/8],
+                [2, 1/8],
                 [4, 1/8],
-                [3, 1/8],
-                [1, 1/8],
-                [3, 1/8],
+                [2, 1/8],
+                [0, 1/8],
+                [2, 1/8],
                 [4, 1/8],
-                [3, 1/8],
-                [-1, 1/8],
-                [-2, 1/8],
-                [-4, 1/8],
-                [-2, 1/8],
-                [-1, 1/8],
-                [-2, 1/8],
-                [-4, 1/8],
-                [-2, 1/8],
+                [2, 1/8],
+                [0, 1/8],
+                [2, 1/8],
+                [4, 1/8],
+                [2, 1/8],
             ];
 
             data = [];
@@ -238,7 +234,7 @@
                 for (var idx = 0; idx < notes[ni][1] * bps; idx++) {
                     //data.push(Math.floor(255 * ((Math.sin(2.0 * Math.PI * f * idx * sample_duration) + 1.0) / 2.0)));
                     var min = note(minor, notes[ni][0]);
-                    var s1 = synth(sin, asdr, min)(idx);
+                    var s1 = synth(sin, ad(0.1,0.1), min)(idx);
                     data.push(s1);
                     //data.push(Math.floor(127.5 * Math.sin(idx * N_samples) + 127.5));
                 }
